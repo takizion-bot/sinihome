@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { formatKRW } from '@/lib/format';
 import { fetchPlans, type Plan } from '@/lib/data';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -170,10 +171,10 @@ export default function PlanDetailPage() {
                 </Link>
                 <div className="flex flex-col">
                   <span className="text-[11px] font-semibold text-black/30 line-through leading-none mb-0.5">
-                    ${plan.originalPrice}
+                    {formatKRW(plan.originalPrice)}
                   </span>
                   <span className="text-2xl font-bold text-black leading-tight">
-                    ${plan.price}
+                    {formatKRW(plan.price)}
                   </span>
                 </div>
               </div>
@@ -303,8 +304,8 @@ export default function PlanDetailPage() {
               className="mobile-touch-target flex w-full items-center justify-center rounded-full bg-black px-6 text-sm font-semibold uppercase tracking-[0.08em] text-white"
             >
               Book This Plan&nbsp;&mdash;&nbsp;
-              <span className="line-through text-white/40 font-medium mr-1">${plan.originalPrice}</span>
-              ${plan.price}
+              <span className="line-through text-white/40 font-medium mr-1">{formatKRW(plan.originalPrice)}</span>
+              {formatKRW(plan.price)}
             </Link>
           </div>
         </div>

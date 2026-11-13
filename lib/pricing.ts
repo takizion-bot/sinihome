@@ -1,9 +1,13 @@
-// Single source of truth for booking price composition.
-// Mirrors the SQL logic in public.create_pending_booking so the review screen
-// matches what Stripe will charge. Server always re-computes before charging.
+// Single source of truth for booking price composition (display side).
+// Mirrors the SQL in public.create_pending_booking so the review screen matches
+// what Toss will charge. The server ALWAYS recomputes before charging.
+// All amounts are whole KRW.
 
 import type { Plan } from './plans';
 import type { Location, Addon } from './data';
+
+/** Must equal app_settings.extra_time_price_per_30min in the database. */
+export const EXTRA_TIME_PRICE_PER_30MIN = 139000;
 
 export type PricingInput = {
   plan: Pick<Plan, 'price' | 'extraPersonPrice'>;
@@ -14,34 +18,23 @@ export type PricingInput = {
 };
 
 export type PricingBreakdown = {
-  baseCents: number;
-  locationCents: number;
-  extraTimeCents: number;
-  extraPeopleCents: number;
-  addonCents: number;
-  totalCents: number;
-  totalUsd: number;
+  base: number;
+  location: number;
+  extraTime: number;
+  extraPeople: number;
+  addons: number;
+  total: number;
 };
 
-// Dollar prices are stored as integers in the DB; we convert to cents here.
-const toCents = (usd: number) => Math.round(usd * 100);
+export function extraTimePrice(extraDurationMinutes: number): number {
+  return Math.floor(extraDurationMinutes / 30) * EXTRA_TIME_PRICE_PER_30MIN;
+}
 
 export function computePricing(input: PricingInput): PricingBreakdown {
-  const baseCents = toCents(input.plan.price);
-  const locationCents = toCents(input.location.surcharge);
-  const extraTimeCents = Math.floor(input.extraDurationMinutes / 30) * toCents(100);
-  const extraPeopleCents =
-    input.groupSize > 1 ? (input.groupSize - 1) * toCents(input.plan.extraPersonPrice) : 0;
-  const addonCents = input.addons.reduce((s, a) => s + toCents(a.price), 0);
-  const totalCents =
-    baseCents + locationCents + extraTimeCents + extraPeopleCents + addonCents;
-  return {
-    baseCents,
-    locationCents,
-    extraTimeCents,
-    extraPeopleCents,
-    addonCents,
-    totalCents,
-    totalUsd: totalCents / 100,
-  };
+  const base = input.plan.price;
+  const location = input.location.surcharge;
+  const extraTime = extraTimePrice(input.extraDurationMinutes);
+  const extraPeople = input.groupSize > 1 ? (input.groupSize - 1) * input.plan.extraPersonPrice : 0;
+  const addons = input.addons.reduce((s, a) => s + a.price, 0);
+  return { base, location, extraTime, extraPeople, addons, total: base + location + extraTime + extraPeople + addons };
 }

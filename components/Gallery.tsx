@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { formatKRW } from '@/lib/format';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Image from 'next/image';
@@ -83,8 +84,8 @@ export default function Gallery() {
                   {
                     ...plan,
                     name: 'Styling + Tokyo Photoshoot',
-                    price: 499,
-                    originalPrice: 590,
+                    price: 699000,
+                    originalPrice: 829000,
                     description:
                       'A 2-hour Tokyo fashion experience — get styled in Harajuku with your photographer/stylist, then finish with a stylish photoshoot at iconic Tokyo locations.',
                     lens: 'Portrait + Fish Eye + Both',
@@ -194,10 +195,10 @@ export default function Gallery() {
                       </h3>
                       <div className="flex flex-col items-end shrink-0 ml-3">
                         <span className="text-[11px] font-semibold text-black/30 line-through leading-none mb-0.5">
-                          ${plan.originalPrice}
+                          {formatKRW(plan.originalPrice)}
                         </span>
                         <span className="text-xl md:text-[22px] font-bold text-black leading-tight">
-                          ${plan.price}
+                          {formatKRW(plan.price)}
                         </span>
                       </div>
                     </div>

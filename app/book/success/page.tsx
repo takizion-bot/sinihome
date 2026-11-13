@@ -1,14 +1,12 @@
-// Post-payment landing page. Stripe redirects here on success.
-// Serves as a fallback confirmation if the webhook hasn't landed yet:
-// we call a small server check that retrieves the session and, if Stripe
-// says it's paid but our DB hasn't caught up, performs the transition itself.
+// Post-payment landing page. /api/payments/toss/success approves and records
+// the payment, then redirects here with ?order_id=. This page only READS state
+// (no side effects), so refreshing or sharing the URL is safe. If the payment
+// is not recorded yet (e.g. the webhook is still on its way), it says so.
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
-import { stripe } from '@/lib/stripe';
-import { getAnonSupabase } from '@/lib/supabase-server';
-import { sendBookingNotifications } from '@/lib/booking-email';
+import { getAdminSupabase } from '@/lib/supabase-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,63 +19,34 @@ export const metadata: Metadata = {
 };
 
 type Props = {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ order_id?: string }>;
 };
 
-async function ensureBookingPaid(sessionId: string): Promise<{ reference: string; name: string; error?: string }> {
-  const supabase = getAnonSupabase();
-  const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['payment_intent'] });
-  // 100% coupons produce 'no_payment_required' instead of 'paid'
-  const paid = session.payment_status === 'paid' || session.payment_status === 'no_payment_required';
+async function loadBooking(orderId: string): Promise<{ reference: string; name: string; error?: string }> {
+  const supabase = getAdminSupabase();
+  const { data: rows } = await supabase.rpc('get_booking_by_order', { p_order_id: orderId });
+  const row = (rows as { reference: string; client_name: string; payment_status: string }[] | null)?.[0];
 
-  // Use a SECURITY DEFINER RPC so RLS doesn't block the anon read.
-  const { data: rows } = await supabase.rpc('get_booking_by_session', { p_session_id: sessionId });
-  const bookingRow = rows?.[0] ?? null;
-
-  if (!bookingRow) {
-    return { reference: '', name: '', error: 'Booking not found for this session.' };
+  if (!row) return { reference: '', name: '', error: 'Booking not found for this order.' };
+  if (row.payment_status !== 'paid') {
+    return {
+      reference: row.reference,
+      name: row.client_name,
+      error: 'We have not received confirmation of your payment yet. Please check My Bookings in a minute; if you were charged, contact support.',
+    };
   }
-
-  if (paid && bookingRow.payment_status !== 'paid') {
-    // Fallback: the webhook hasn't processed yet. Drive the transition here.
-    const piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null;
-    let chargeId: string | null = null;
-    if (piId) {
-      try {
-        const pi = await stripe.paymentIntents.retrieve(piId, { expand: ['latest_charge'] });
-        const charge = pi.latest_charge;
-        if (typeof charge === 'string') chargeId = charge;
-        else if (charge && 'id' in charge) chargeId = charge.id;
-      } catch {}
-    }
-    await supabase.rpc('mark_booking_paid', {
-      p_session_id: sessionId,
-      p_payment_intent_id: piId,
-      p_charge_id: chargeId,
-    });
-  }
-
-  const bookingId = session.metadata?.booking_id || session.client_reference_id;
-  if (paid && bookingId) {
-    try {
-      await sendBookingNotifications(bookingId);
-    } catch (emailError) {
-      console.error('[success page] booking notifications failed', emailError);
-    }
-  }
-
-  return { reference: bookingRow.reference, name: bookingRow.client_name };
+  return { reference: row.reference, name: row.client_name };
 }
 
 export default async function BookingSuccessPage({ searchParams }: Props) {
-  const { session_id } = await searchParams;
+  const { order_id } = await searchParams;
 
   let reference = '';
   let name = '';
   let error: string | undefined;
-  if (session_id) {
+  if (order_id) {
     try {
-      const r = await ensureBookingPaid(session_id);
+      const r = await loadBooking(order_id);
       reference = r.reference;
       name = r.name;
       error = r.error;
@@ -86,7 +55,7 @@ export default async function BookingSuccessPage({ searchParams }: Props) {
       error = 'We could not verify your booking. If you were charged, please contact support.';
     }
   } else {
-    error = 'Missing session identifier.';
+    error = 'Missing order identifier.';
   }
 
   return (

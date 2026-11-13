@@ -15,9 +15,9 @@ export const STUDIO = {
   foundingDate: '2024',
   email: 'studio.on.snap@gmail.com',
   phone: '+81-90-1295-4319',
-  priceRange: '$70–$300',
-  currenciesAccepted: 'USD, JPY',
-  paymentAccepted: 'Credit Card (Stripe)',
+  priceRange: '₩99,000–₩419,000',
+  currenciesAccepted: 'KRW',
+  paymentAccepted: 'Credit Card (Toss Payments)',
   address: {
     streetAddress: 'Sakura 3-9-24',
     addressLocality: 'Setagaya',
@@ -183,7 +183,7 @@ export function serviceJsonLd(args: {
     offers: {
       '@type': 'Offer',
       price: args.price,
-      priceCurrency: 'USD',
+      priceCurrency: 'KRW',
       url: absoluteUrl(args.url),
       availability: 'https://schema.org/InStock',
     },

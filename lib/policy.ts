@@ -1,17 +1,19 @@
 // Shared cancellation / reschedule policy — the canonical decisions live in
-// public.get_booking_policy SQL. These helpers exist only to render preview
-// messaging; final amounts come from the server-authoritative RPC response.
+// public.get_booking_policy (SQL). These helpers only render preview messaging;
+// final amounts always come from the server-authoritative RPC response.
+// All amounts are whole KRW.
+
+import { formatKRW } from './format';
 
 export type PolicySnapshot = {
-  hoursUntilShoot: number;
-  cancelRefundPercent: 0 | 50 | 100;
-  cancelRefundCents: number;
-  canCancel: boolean;
-  rescheduleFeePercent: -1 | 0 | 50;
-  rescheduleFeeCents: number;
-  canRescheduleFree: boolean;
-  canReschedulePaid: boolean;
-  totalCents: number;
+  hours_until_start: number;
+  total_price: number;
+  cancel_refund_percent: 0 | 50 | 100;
+  cancel_refund_amount: number;
+  can_cancel: boolean;
+  reschedule_fee_amount: number;
+  can_reschedule_free: boolean;
+  can_reschedule_paid: boolean;
 };
 
 // UI copy for each policy bucket — keep concise and unambiguous.
@@ -27,7 +29,6 @@ export const RESCHEDULE_POLICY_COPY: Record<number, string> = {
   [-1]: 'Rescheduling is not possible within 24 hours of the shoot.',
 };
 
-export function formatRefundMessage(refundCents: number): string {
-  const dollars = (refundCents / 100).toFixed(2);
-  return `$${dollars} will be returned to the original payment method within 5–10 business days.`;
+export function formatRefundMessage(refundAmount: number): string {
+  return `${formatKRW(refundAmount)} will be returned to the original payment method (card refunds typically take 3–7 business days).`;
 }

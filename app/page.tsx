@@ -9,12 +9,12 @@ import { absoluteUrl, faqJsonLd, SITE_URL, SITE_NAME, STUDIO } from '@/lib/seo';
 export const metadata: Metadata = {
   title: 'Tokyo Photoshoot — Cinematic Portraits in Shibuya, Shinjuku & Harajuku',
   description:
-    'Book a cinematic Tokyo photoshoot with @ Studio ON. English-speaking photographers, editorial portraits at Shibuya Crossing, Shinjuku, Harajuku, and Akihabara. Sessions from $70.',
+    'Book a cinematic Tokyo photoshoot with @ Studio ON. English-speaking photographers, editorial portraits at Shibuya Crossing, Shinjuku, Harajuku, and Akihabara. Sessions from ₩99,000.',
   alternates: { canonical: '/' },
   openGraph: {
     title: 'Tokyo Photoshoot — Cinematic Portraits in Shibuya, Shinjuku & Harajuku',
     description:
-      'Editorial portrait sessions across Tokyo for travelers, couples, and creators. From $70.',
+      'Editorial portrait sessions across Tokyo for travelers, couples, and creators. From ₩99,000.',
     url: SITE_URL,
     type: 'website',
   },
@@ -24,7 +24,7 @@ const HOME_FAQ = [
   {
     question: 'How much does a Tokyo photoshoot with @ Studio ON cost?',
     answer:
-      'Sessions start at $70 for a 30-minute Tokyo Quick Shot and run up to $300 for the Couple / Proposal Session, which includes both portrait and fish-eye lenses across a 50-minute shoot. Shibuya and Shinjuku are both included at no extra cost.',
+      'Sessions start at ₩99,000 for a 30-minute Tokyo Quick Shot and run up to ₩419,000 for the Couple / Proposal Session, which includes both portrait and fish-eye lenses across a 50-minute shoot. Shibuya and Shinjuku are both included at no extra cost.',
   },
   {
     question: 'Where in Tokyo do you photograph?',

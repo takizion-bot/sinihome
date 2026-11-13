@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { formatKRW } from '@/lib/format';
 import { notFound } from 'next/navigation';
 import PlanClient from './PlanClient';
 import JsonLd from '@/components/JsonLd';
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const title = `${plan.name} — Tokyo Photoshoot ($${plan.price})`;
+  const title = `${plan.name} — Tokyo Photoshoot (${formatKRW(plan.price)})`;
   const description = `${plan.description} ${plan.duration}-minute Tokyo session at Shibuya or Shinjuku, ${plan.photoCount.toLowerCase()} delivered. Book online with @ Studio ON.`;
   const heroImage = planImages[plan.slug] ?? '/quickshotmain.jpg';
 
@@ -95,7 +96,7 @@ export default async function PlanPage({ params }: Props) {
           offers: {
             '@type': 'Offer',
             url: absoluteUrl(`/plan/${plan.slug}`),
-            priceCurrency: 'USD',
+            priceCurrency: 'KRW',
             price: plan.price,
             availability: 'https://schema.org/InStock',
             seller: { '@id': `${SITE_URL}/#studio` },

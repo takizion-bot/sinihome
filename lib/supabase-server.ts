@@ -1,8 +1,8 @@
 // Per-request Supabase client for API routes.
 // The browser already owns the user's session; we forward the JWT via the
 // Authorization header so SECURITY DEFINER RPCs still see auth.uid().
-// A separate anon client is used for webhook handlers which operate without
-// a user context — those rely on the Stripe signature + unguessable session ids.
+// Payment confirmation, refunds and webhooks use getAdminSupabase(): those RPCs
+// are service_role only, and the server verifies every payment with Toss first.
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -18,7 +18,7 @@ export function getUserSupabase(authHeader: string | null | undefined): Supabase
   });
 }
 
-/** Anon client with no user context. Use only for webhook handlers. */
+/** Anon client with no user context. Not used for anything that records money. */
 export function getAnonSupabase(): SupabaseClient {
   return createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },

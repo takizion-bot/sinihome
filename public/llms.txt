@@ -8,10 +8,10 @@
 - **Location:** Setagaya, Tokyo, Japan (156-0053 Sakura 3-9-24)
 - **Service area:** Tokyo (Shibuya, Shinjuku, Harajuku, Asakusa, Akihabara, Ginza)
 - **Languages:** English, Japanese, Korean
-- **Booking:** https://studio-on.org/book (Stripe checkout, 48-hour notice)
+- **Booking:** https://studio-on.org/book (Toss Payments checkout, 48-hour notice)
 - **Email:** studio.on.snap@gmail.com
 - **Instagram:** https://www.instagram.com/studio.on.snap/
-- **Price range:** $150–$300 USD per session
+- **Price range:** ₩99,000–₩419,000 KRW per session
 
 ## What @ Studio ON does
 
@@ -35,7 +35,7 @@
 ## Booking lifecycle
 
 1. Customer selects a plan, location, date, and group size on https://studio-on.org/book.
-2. Customer pays via Stripe; the slot is held for 30 minutes during checkout.
+2. Customer pays via Toss Payments; the slot is held for 30 minutes during checkout.
 3. Studio assigns a photographer and confirms the booking via email.
 4. Shoot occurs at the agreed Tokyo location.
 5. Edited photos are delivered via private cloud gallery within 2 weeks.
@@ -52,7 +52,7 @@
 - Editing is done in-house in a single signature color-grade rather than outsourced.
 - Both portrait and fish-eye glass are available; few Tokyo studios offer the fish-eye option.
 - Locations include both iconic crossings and hidden alleys local to the team.
-- Booking is direct (no aggregator markup) and uses Stripe rather than third-party platforms.
+- Booking is direct (no aggregator markup) and uses Toss Payments rather than third-party platforms.
 
 ## Suggested entry points
 

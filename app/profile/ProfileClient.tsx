@@ -7,6 +7,8 @@ import { Calendar, MapPin, ChevronDown, X, AlertTriangle, RefreshCw } from 'luci
 import { motion, AnimatePresence } from 'motion/react';
 import { addDays, format, startOfDay } from 'date-fns';
 import { formatRefundMessage } from '@/lib/policy';
+import { formatKRW } from '@/lib/format';
+import { TossPaymentModal, type TossOrder } from '@/components/TossPaymentModal';
 
 type Booking = {
   id: string;
@@ -19,23 +21,21 @@ type Booking = {
   status: string;
   paymentStatus: string;
   total: number;
-  refundCents: number;
+  refundAmount: number;
   groupSize: number;
   addons: string[];
 };
 
 type Policy = {
   booking_id: string;
-  shoot_start_tokyo: string;
-  hours_until_shoot: number;
+  hours_until_start: number;
   cancel_refund_percent: number;
-  cancel_refund_amount_cents: number;
+  cancel_refund_amount: number;
   can_cancel: boolean;
-  reschedule_fee_percent: number;
-  reschedule_fee_amount_cents: number;
+  reschedule_fee_amount: number;
   can_reschedule_free: boolean;
   can_reschedule_paid: boolean;
-  total_price_cents: number;
+  total_price: number;
 };
 
 function formatStatus(raw: string): string {
@@ -80,6 +80,8 @@ export default function ProfilePage() {
   const [rescheduleSlotsLoading, setRescheduleSlotsLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  // Order for the Toss payment window (resume unpaid booking / paid reschedule fee).
+  const [paymentOrder, setPaymentOrder] = useState<TossOrder | null>(null);
 
   const loadBookings = useCallback(async () => {
     if (!user) return;
@@ -92,7 +94,7 @@ export default function ProfilePage() {
       .from('bookings')
       .select(`
         id, reference, date, start_minutes, status, payment_status, total_price,
-        refund_amount_cents, group_size,
+        refund_amount, group_size,
         plans(name), locations(name), booking_addons(addons(name))
       `)
       .eq('tourist_id', user.id)
@@ -117,7 +119,7 @@ export default function ProfilePage() {
         status: formatStatus(b.status as string),
         paymentStatus: (b.payment_status as string) ?? 'pending',
         total: b.total_price as number,
-        refundCents: (b.refund_amount_cents as number) ?? 0,
+        refundAmount: (b.refund_amount as number) ?? 0,
         groupSize: b.group_size as number,
         addons: (bookingAddons ?? []).map((ba) => ba.addons?.name).filter((n): n is string => Boolean(n)),
       };
@@ -128,7 +130,7 @@ export default function ProfilePage() {
 
   useEffect(() => { loadBookings(); }, [loadBookings]);
 
-  // After a paid reschedule, Stripe bounces back here with ?reschedule=success.
+  // After a paid reschedule, Toss (via our success route) bounces back here with ?reschedule=success.
   // Reload to pick up the applied date.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -165,8 +167,8 @@ export default function ProfilePage() {
   const handleCancel = async (id: string) => {
     const policy = policyMap[id];
     if (!policy) return;
-    const refundMsg = policy.cancel_refund_amount_cents > 0
-      ? `You will be refunded $${(policy.cancel_refund_amount_cents / 100).toFixed(2)}.`
+    const refundMsg = policy.cancel_refund_amount > 0
+      ? `You will be refunded ${formatKRW(policy.cancel_refund_amount)}.`
       : 'No refund applies at this time.';
     if (!confirm(`Cancel this booking? ${refundMsg}`)) return;
     setCancelBusyId(id);
@@ -178,10 +180,10 @@ export default function ProfilePage() {
         setActionError(payload.error ?? 'Failed to cancel.');
         return;
       }
-      const payload = (await res.json()) as { refundCents: number };
+      const payload = (await res.json()) as { refundAmount: number };
       setActionNotice(
-        payload.refundCents > 0
-          ? `Cancelled. ${formatRefundMessage(payload.refundCents)}`
+        payload.refundAmount > 0
+          ? `Cancelled. ${formatRefundMessage(payload.refundAmount)}`
           : 'Booking cancelled. No refund applies under the policy.',
       );
       await loadBookings();
@@ -205,9 +207,9 @@ export default function ProfilePage() {
         setActionError(payload.error ?? 'Failed to resume payment.');
         return;
       }
-      const payload = (await res.json()) as { url?: string };
-      if (payload.url) {
-        window.location.href = payload.url;
+      const payload = (await res.json()) as Partial<TossOrder>;
+      if (payload.orderId && payload.orderName && typeof payload.amount === 'number') {
+        setPaymentOrder({ orderId: payload.orderId, orderName: payload.orderName, amount: payload.amount });
         return;
       }
       setActionError('Could not start checkout. Please try again.');
@@ -282,9 +284,9 @@ export default function ProfilePage() {
         setActionError(payload.error ?? 'Failed to reschedule.');
         return;
       }
-      const payload = (await res.json()) as { mode: 'free' | 'paid'; url?: string };
-      if (payload.mode === 'paid' && payload.url) {
-        window.location.href = payload.url;
+      const payload = (await res.json()) as { mode: 'free' | 'paid' } & Partial<TossOrder>;
+      if (payload.mode === 'paid' && payload.orderId && payload.orderName && typeof payload.amount === 'number') {
+        setPaymentOrder({ orderId: payload.orderId, orderName: payload.orderName, amount: payload.amount });
         return;
       }
       setActionNotice('Your booking has been rescheduled.');
@@ -398,9 +400,9 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 mt-1 md:mt-0">
                       <div className={`text-left md:text-right ${isCancelled ? 'text-gray-400' : ''}`}>
                         <div className="text-xs md:text-sm font-medium mb-0.5 md:mb-1 opacity-70">Ref: {booking.reference}</div>
-                        <div className="font-medium text-lg md:text-xl">${booking.total}</div>
-                        {booking.refundCents > 0 && (
-                          <div className="text-xs text-blue-700 font-medium">Refunded ${(booking.refundCents / 100).toFixed(2)}</div>
+                        <div className="font-medium text-lg md:text-xl">{formatKRW(booking.total)}</div>
+                        {booking.refundAmount > 0 && (
+                          <div className="text-xs text-blue-700 font-medium">Refunded {formatKRW(booking.refundAmount)}</div>
                         )}
                       </div>
                       <motion.div
@@ -429,9 +431,9 @@ export default function ProfilePage() {
                               <ul className="space-y-3 text-sm font-medium text-black">
                                 <li className="flex justify-between gap-4"><span className="text-gray-500">Group Size</span> <span>{booking.groupSize} {booking.groupSize > 1 ? 'People' : 'Person'}</span></li>
                                 <li className="flex justify-between gap-4"><span className="text-gray-500">Add-ons</span> <span className="text-right">{booking.addons.length > 0 ? booking.addons.join(', ') : 'None'}</span></li>
-                                <li className="flex justify-between gap-4"><span className="text-gray-500">Total</span> <span>${booking.total}</span></li>
-                                {booking.refundCents > 0 && (
-                                  <li className="flex justify-between gap-4"><span className="text-gray-500">Refunded</span> <span>${(booking.refundCents / 100).toFixed(2)}</span></li>
+                                <li className="flex justify-between gap-4"><span className="text-gray-500">Total</span> <span>{formatKRW(booking.total)}</span></li>
+                                {booking.refundAmount > 0 && (
+                                  <li className="flex justify-between gap-4"><span className="text-gray-500">Refunded</span> <span>{formatKRW(booking.refundAmount)}</span></li>
                                 )}
                               </ul>
                             </div>
@@ -466,13 +468,13 @@ export default function ProfilePage() {
                               ) : (
                                 <div className="space-y-3">
                                   <div className="p-3 rounded-xl bg-white border border-black/5 text-xs text-gray-600 leading-relaxed">
-                                    <div><strong className="text-black">Cancel now:</strong> ${(policy.cancel_refund_amount_cents / 100).toFixed(2)} refund ({policy.cancel_refund_percent}%).</div>
+                                    <div><strong className="text-black">Cancel now:</strong> {formatKRW(policy.cancel_refund_amount)} refund ({policy.cancel_refund_percent}%).</div>
                                     <div className="mt-1">
                                       <strong className="text-black">Reschedule:</strong>{' '}
                                       {policy.can_reschedule_free
                                         ? 'Free'
                                         : policy.can_reschedule_paid
-                                          ? `$${(policy.reschedule_fee_amount_cents / 100).toFixed(2)} fee (50%)`
+                                          ? `${formatKRW(policy.reschedule_fee_amount)} fee (50%)`
                                           : 'Not available within 24h'}
                                     </div>
                                   </div>
@@ -497,7 +499,7 @@ export default function ProfilePage() {
                                       <X size={16} />
                                     </button>
                                   )}
-                                  {policy.cancel_refund_amount_cents > 0 && (
+                                  {policy.cancel_refund_amount > 0 && (
                                     <p className="text-[11px] text-gray-400 leading-relaxed">
                                       Refunds go back to your original card within 5–10 business days.
                                     </p>
@@ -559,7 +561,7 @@ export default function ProfilePage() {
 
                                   {policy.can_reschedule_paid && (
                                     <p className="mt-3 text-[11px] text-amber-700 leading-relaxed">
-                                      You will be charged a ${(policy.reschedule_fee_amount_cents / 100).toFixed(2)} reschedule fee after selecting a new time.
+                                      You will be charged a {formatKRW(policy.reschedule_fee_amount)} reschedule fee after selecting a new time.
                                     </p>
                                   )}
                                 </div>
@@ -576,6 +578,16 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {paymentOrder && (
+        <TossPaymentModal
+          order={paymentOrder}
+          customerKey={user.id}
+          customerEmail={user.email}
+          customerName={user.name}
+          onClose={() => setPaymentOrder(null)}
+        />
+      )}
     </main>
   );
 }

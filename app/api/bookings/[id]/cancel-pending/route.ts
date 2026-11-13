@@ -1,5 +1,5 @@
 // POST /api/bookings/[id]/cancel-pending
-// Customer cancels an unpaid pending_payment booking. No refund, no Stripe call —
+// Customer cancels an unpaid pending_payment booking. No refund, no payment-provider call —
 // just releases the slot.
 
 import { NextRequest, NextResponse } from 'next/server';

@@ -9,6 +9,9 @@ import { Location, Addon, fetchLocations, fetchAddons } from '@/lib/data';
 import { PLANS, type Plan } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { formatKRW } from '@/lib/format';
+import { EXTRA_TIME_PRICE_PER_30MIN, extraTimePrice } from '@/lib/pricing';
+import { TossPaymentModal, type TossOrder } from '@/components/TossPaymentModal';
 
 type BookingState = {
   plan: Plan | null;
@@ -284,6 +287,15 @@ export default function BookPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [hasHydratedDraft, setHasHydratedDraft] = useState(false);
+  // Order created by /api/checkout; kept so re-opening the payment window never creates a second booking.
+  const [pendingOrder, setPendingOrder] = useState<TossOrder | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+
+  // The order is only valid for the exact booking it was created from.
+  useEffect(() => {
+    setPendingOrder(null);
+    setPaymentOpen(false);
+  }, [booking.plan, booking.location, booking.date, booking.time, booking.extraDuration, booking.groupSize, booking.addons]);
 
   // Calendar State
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(addDays(startOfDay(new Date()), 2)));
@@ -549,8 +561,8 @@ export default function BookPage() {
     let total = booking.plan?.price || 0;
     total += booking.location?.surcharge || 0;
 
-    // Extra duration: $100 per 30 mins
-    total += (booking.extraDuration / 30) * 100;
+    // Extra duration: priced per 30 mins (must match app_settings in the DB)
+    total += extraTimePrice(booking.extraDuration);
 
     // Extra people: per-plan rate per person beyond 1
     if (booking.groupSize > 1) {
@@ -611,6 +623,13 @@ export default function BookPage() {
       return;
     }
 
+    // Order already created for this booking: just re-open the window.
+    if (pendingOrder) {
+      setSubmitError(null);
+      setPaymentOpen(true);
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError(null);
 
@@ -665,17 +684,19 @@ export default function BookPage() {
       return;
     }
 
-    const { url, bookingId } = (await res.json()) as { url?: string; bookingId?: string };
-    if (!url) {
-      setSubmitError('Payment session did not return a redirect URL.');
+    const order = (await res.json()) as { bookingId?: string; orderId?: string; orderName?: string; amount?: number };
+    if (!order.orderId || !order.orderName || typeof order.amount !== 'number') {
+      setSubmitError('Payment order was not created. Please try again.');
       setSubmitting(false);
       return;
     }
 
-    await trackEvent('payment_initiated', { booking_id: bookingId, amount: calculateTotal() });
+    await trackEvent('payment_initiated', { booking_id: order.bookingId, amount: order.amount });
 
-    // Hand off to Stripe. The booking is now held for 30 minutes.
-    window.location.href = url;
+    // Open the Toss payment window. The booking is now held for 30 minutes.
+    setPendingOrder({ orderId: order.orderId, orderName: order.orderName, amount: order.amount });
+    setPaymentOpen(true);
+    setSubmitting(false);
   };
 
   const stepTitleClass = 'text-2xl md:text-3xl font-bold tracking-tight mb-6 md:mb-8 text-black';
@@ -802,8 +823,8 @@ export default function BookPage() {
           </div>
           <div className="text-right shrink-0">
             <div className="flex flex-col items-end">
-              <span className="text-[11px] font-semibold text-black/30 line-through leading-none mb-0.5">${plan.originalPrice}</span>
-              <span className="text-xl font-medium text-black leading-tight">${plan.price}</span>
+              <span className="text-[11px] font-semibold text-black/30 line-through leading-none mb-0.5">{formatKRW(plan.originalPrice)}</span>
+              <span className="text-xl font-medium text-black leading-tight">{formatKRW(plan.price)}</span>
             </div>
             <div className="opacity-0 group-hover:opacity-100 transition-opacity text-sm mt-1 flex items-center justify-end text-gray-500 font-medium">
               Select <ChevronRight size={16} />
@@ -850,7 +871,7 @@ export default function BookPage() {
                 )}
               </div>
               <span className={`text-sm font-medium ${location.isComingSoon ? 'text-gray-400' : 'text-gray-500'}`}>
-                {location.isComingSoon ? '—' : location.surcharge > 0 ? `+$${location.surcharge}` : 'Included'}
+                {location.isComingSoon ? '—' : location.surcharge > 0 ? `+${formatKRW(location.surcharge)}` : 'Included'}
               </span>
             </div>
           </div>
@@ -986,7 +1007,7 @@ export default function BookPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-black/10 rounded-lg bg-white gap-4">
               <div className="pr-2">
                 <div className="font-medium text-black text-sm">Extend Session</div>
-                <div className="text-xs text-gray-500">+$100 per 30 mins</div>
+                <div className="text-xs text-gray-500">+{formatKRW(EXTRA_TIME_PRICE_PER_30MIN)} per 30 mins</div>
               </div>
               <div className="flex items-center gap-3">
                 <button
@@ -1032,7 +1053,7 @@ export default function BookPage() {
             <div className="font-medium text-sm text-black">Number of People</div>
             <div className="text-xs text-gray-500">
               {booking.plan && booking.plan.extraPersonPrice > 0
-                ? `Base price includes 1 person. +$${booking.plan.extraPersonPrice} per extra person. Max 10.`
+                ? `Base price includes 1 person. +${formatKRW(booking.plan.extraPersonPrice)} per extra person. Max 10.`
                 : 'Base price includes additional people at no extra charge. Max 10.'}
             </div>
           </div>
@@ -1091,7 +1112,7 @@ export default function BookPage() {
                   </div>
                   <span className="font-medium text-sm text-black">{addon.name}</span>
                 </div>
-                <span className="text-gray-500 text-sm font-medium">+${addon.price}</span>
+                <span className="text-gray-500 text-sm font-medium">+{formatKRW(addon.price)}</span>
               </div>
             );
           })}
@@ -1250,38 +1271,38 @@ export default function BookPage() {
             <div className="flex justify-between">
               <span className="text-gray-500">Base Plan ({booking.plan?.duration}m)</span>
               <span className="flex items-baseline gap-1.5">
-                <span className="text-[11px] font-semibold text-black/30 line-through">${booking.plan?.originalPrice}</span>
-                <span className="text-black">${booking.plan?.price}</span>
+                <span className="text-[11px] font-semibold text-black/30 line-through">{formatKRW(booking.plan?.originalPrice ?? 0)}</span>
+                <span className="text-black">{formatKRW(booking.plan?.price ?? 0)}</span>
               </span>
             </div>
 
             <div className="flex justify-between">
               <span className="text-gray-500">Location: {booking.location?.name}</span>
-              <span className="text-black">{booking.location?.surcharge ? `+$${booking.location.surcharge}` : 'Included'}</span>
+              <span className="text-black">{booking.location?.surcharge ? `+${formatKRW(booking.location.surcharge)}` : 'Included'}</span>
             </div>
 
             {booking.extraDuration > 0 && (
               <div className="flex justify-between">
                 <span className="text-gray-500">Extra Time (+{booking.extraDuration}m)</span>
-                <span className="text-black">+${(booking.extraDuration / 30) * 100}</span>
+                <span className="text-black">+{formatKRW(extraTimePrice(booking.extraDuration))}</span>
               </div>
             )}
 
             <div className="flex justify-between">
               <span className="text-gray-500">Group Size ({booking.groupSize} people)</span>
-              <span className="text-black">{booking.groupSize > 1 && (booking.plan?.extraPersonPrice ?? 0) > 0 ? `+$${(booking.groupSize - 1) * (booking.plan?.extraPersonPrice ?? 0)}` : 'Included'}</span>
+              <span className="text-black">{booking.groupSize > 1 && (booking.plan?.extraPersonPrice ?? 0) > 0 ? `+${formatKRW((booking.groupSize - 1) * (booking.plan?.extraPersonPrice ?? 0))}` : 'Included'}</span>
             </div>
 
             {booking.addons.map((addon) => (
               <div key={addon.id} className="flex justify-between">
                 <span className="text-gray-500">Add-on: {addon.name}</span>
-                <span className="text-black">+${addon.price}</span>
+                <span className="text-black">+{formatKRW(addon.price)}</span>
               </div>
             ))}
 
             <div className="pt-4 mt-4 border-t border-black/10 flex justify-between font-medium text-lg text-black">
               <span>Total</span>
-              <span>${total}</span>
+              <span>{formatKRW(total)}</span>
             </div>
           </div>
         </div>
@@ -1316,7 +1337,7 @@ export default function BookPage() {
             disabled={!booking.agreedToPolicy || submitting}
             className={actionBtnDisabledClass}
           >
-            {submitting ? 'Redirecting…' : `Pay $${total} with Card`}
+            {submitting ? 'Preparing payment…' : `Pay ${formatKRW(total)}`}
           </button>
         </div>
       </div>
@@ -1387,6 +1408,17 @@ export default function BookPage() {
           </AnimatePresence>
         </div>
       </div>
+
+      {paymentOpen && pendingOrder && user && (
+        <TossPaymentModal
+          order={pendingOrder}
+          customerKey={user.id}
+          customerEmail={booking.clientInfo.email || user.email}
+          customerName={booking.clientInfo.name || user.name}
+          customerMobilePhone={booking.clientInfo.phone}
+          onClose={() => setPaymentOpen(false)}
+        />
+      )}
     </main>
   );
 }

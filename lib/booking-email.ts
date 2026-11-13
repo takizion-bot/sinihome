@@ -1,4 +1,5 @@
 import 'server-only';
+import { formatKRW } from '@/lib/format';
 
 import { createHash } from 'node:crypto';
 import { getAdminSupabase } from '@/lib/supabase-server';
@@ -106,7 +107,7 @@ function emailRows(booking: BookingForEmail, internal: boolean): Array<[string, 
     ['Group size', `${booking.group_size} ${booking.group_size === 1 ? 'person' : 'people'}`],
     ['Extra duration', booking.extra_duration_minutes ? `${booking.extra_duration_minutes} minutes` : 'None'],
     ['Add-ons', addons || 'None'],
-    ['Total paid', `$${Number(booking.total_price).toFixed(2)} USD`],
+    ['Total paid', formatKRW(Number(booking.total_price))],
     ['Assigned worker', relatedName(booking.assigned_member) ?? 'Unassigned'],
     ['Special requests', booking.special_requests?.trim() || 'None'],
     ['Retouch notes', booking.retouch_notes?.trim() || 'None'],

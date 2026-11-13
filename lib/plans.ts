@@ -1,6 +1,7 @@
 // Hardcoded source of truth for customer-facing plans.
-// Prices here are displayed, but the server re-validates totals against the DB
-// before creating a Stripe Checkout Session. Never trust client totals.
+// Prices are whole KRW and MUST match public.plans in the database (seeded in
+// supabase/migrations). The server recomputes every total from the DB before
+// charging via Toss Payments, so these are display values only.
 
 export type PlanSlug = 'quick' | 'portrait' | 'fisheye' | 'signature' | 'couple';
 
@@ -23,9 +24,9 @@ export const PLANS: Plan[] = [
   {
     slug: 'quick',
     name: 'Tokyo Quick Shot',
-    price: 70,
-    originalPrice: 90,
-    extraPersonPrice: 50,
+    price: 99000,
+    originalPrice: 125000,
+    extraPersonPrice: 69000,
     duration: 30,
     tagline: '30 minutes, portrait lens',
     description: 'A 30-minute portrait session capturing natural, candid moments across 2–3 iconic Tokyo locations.',
@@ -35,9 +36,9 @@ export const PLANS: Plan[] = [
   {
     slug: 'portrait',
     name: 'Full Portrait Session',
-    price: 100,
-    originalPrice: 130,
-    extraPersonPrice: 55,
+    price: 139000,
+    originalPrice: 179000,
+    extraPersonPrice: 77000,
     duration: 50,
     tagline: '50 minutes, portrait lens',
     description: 'A 50-minute portrait session capturing natural, candid moments across 4–5 iconic Tokyo locations.',
@@ -47,9 +48,9 @@ export const PLANS: Plan[] = [
   {
     slug: 'fisheye',
     name: 'Fish Eye Session',
-    price: 150,
-    originalPrice: 190,
-    extraPersonPrice: 60,
+    price: 209000,
+    originalPrice: 265000,
+    extraPersonPrice: 84000,
     duration: 50,
     tagline: '50 minutes, signature fish-eye',
     description: 'A 50-minute creative session with our signature fish-eye lens for bold, wide-angle shots.',
@@ -59,9 +60,9 @@ export const PLANS: Plan[] = [
   {
     slug: 'signature',
     name: 'Signature Session',
-    price: 190,
-    originalPrice: 240,
-    extraPersonPrice: 65,
+    price: 265000,
+    originalPrice: 335000,
+    extraPersonPrice: 91000,
     duration: 50,
     tagline: '50 minutes, both lenses',
     description: 'A 50-minute session combining both lenses for a full range of cinematic shots.',
@@ -71,8 +72,8 @@ export const PLANS: Plan[] = [
   {
     slug: 'couple',
     name: 'Couple / Proposal Session',
-    price: 300,
-    originalPrice: 380,
+    price: 419000,
+    originalPrice: 529000,
     extraPersonPrice: 0,
     duration: 50,
     tagline: '50 minutes, couple story',

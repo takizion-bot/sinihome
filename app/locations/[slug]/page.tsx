@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { formatKRW } from '@/lib/format';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -245,7 +246,7 @@ export default async function LocationPage({ params }: Props) {
                         {plan.name}
                       </h3>
                       <span className="text-base md:text-lg font-medium text-black">
-                        ${plan.price}
+                        {formatKRW(plan.price)}
                       </span>
                     </div>
                     <p className="mt-2 text-[13px] leading-relaxed text-notion-text-muted line-clamp-2">
@@ -342,7 +343,7 @@ export default async function LocationPage({ params }: Props) {
           url: absoluteUrl(`/locations/${location.slug}`),
           offers: {
             '@type': 'AggregateOffer',
-            priceCurrency: 'USD',
+            priceCurrency: 'KRW',
             lowPrice: 150,
             highPrice: 300,
             offerCount: PLANS.length,

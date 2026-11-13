@@ -31,6 +31,7 @@ export async function fetchPlans(): Promise<Plan[]> {
   const { data, error } = await supabase
     .from('plans')
     .select('id, slug, name, price, extra_person_price, duration_minutes, description, sort_order')
+    .eq('is_active', true)
     .in('slug', ['quick', 'portrait', 'fisheye', 'signature', 'couple'])
     .order('sort_order', { ascending: true });
   if (error) throw error;
@@ -51,27 +52,29 @@ export async function fetchPlans(): Promise<Plan[]> {
     couple: 'Couple / Proposal Session',
   };
 
+  // Fallback prices (KRW) only for packages missing from the DB; the DB row wins.
   const enrichedPrices: Record<string, number> = {
-    quick: 70,
-    portrait: 100,
-    fisheye: 150,
-    signature: 190,
-    couple: 300,
+    quick: 99000,
+    portrait: 139000,
+    fisheye: 209000,
+    signature: 265000,
+    couple: 419000,
   };
 
+  // Struck-through "original" prices (KRW), display only.
   const enrichedOriginalPrices: Record<string, number> = {
-    quick: 90,
-    portrait: 130,
-    fisheye: 190,
-    signature: 240,
-    couple: 380,
+    quick: 125000,
+    portrait: 179000,
+    fisheye: 265000,
+    signature: 335000,
+    couple: 529000,
   };
 
   const enrichedExtraPersonPrices: Record<string, number> = {
-    quick: 50,
-    portrait: 55,
-    fisheye: 60,
-    signature: 65,
+    quick: 69000,
+    portrait: 77000,
+    fisheye: 84000,
+    signature: 91000,
     couple: 0,
   };
 
@@ -105,9 +108,9 @@ export async function fetchPlans(): Promise<Plan[]> {
     id: p.id as string,
     slug: p.slug as string,
     name: enrichedNames[p.slug as string] || (p.name as string),
-    price: enrichedPrices[p.slug as string] || (p.price as number),
-    originalPrice: enrichedOriginalPrices[p.slug as string] || enrichedPrices[p.slug as string] || (p.price as number),
-    extraPersonPrice: enrichedExtraPersonPrices[p.slug as string] ?? ((p.extra_person_price as number) || 0),
+    price: (p.price as number) || enrichedPrices[p.slug as string],
+    originalPrice: enrichedOriginalPrices[p.slug as string] || (p.price as number),
+    extraPersonPrice: (p.extra_person_price as number) ?? enrichedExtraPersonPrices[p.slug as string] ?? 0,
     duration: p.duration_minutes as number,
     description: enrichedDescriptions[p.slug as string] || ((p.description as string) ?? ''),
     lens: enrichedMetadata[p.slug as string]?.lens || 'Portrait Lens',

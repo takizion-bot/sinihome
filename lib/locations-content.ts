@@ -31,7 +31,7 @@ export const LOCATIONS: LocationContent[] = [
     shortLabel: 'Shibuya, Tokyo',
     metaTitle: 'Shibuya Photoshoot — Cinematic Portraits at Shibuya Crossing',
     metaDescription:
-      'Book a Shibuya photoshoot at Shibuya Crossing, Hachiko, and Center Gai with @ Studio ON. English-speaking Tokyo photographer, editorial style, from $70.',
+      'Book a Shibuya photoshoot at Shibuya Crossing, Hachiko, and Center Gai with @ Studio ON. English-speaking Tokyo photographer, editorial style, from ₩99,000.',
     heroImage: '/crossingsinglemain1.jpg',
     heroAlt: 'Editorial portrait of a solo traveler at Shibuya Crossing in Tokyo',
     galleryImages: [
