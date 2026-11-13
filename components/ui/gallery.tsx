@@ -126,7 +126,7 @@ export const PhotoGallery = ({
 
       {/* Hero title */}
       <h1 className="mx-auto max-w-2xl text-center text-[clamp(36px,6vw,68px)] leading-[1.05] font-medium tracking-tight text-black py-3">
-        Cinematic<br />Tokyo Moments
+        찌니의 토스페이먼츠<br />테스트 페이지
       </h1>
 
       {/* Photo fan */}

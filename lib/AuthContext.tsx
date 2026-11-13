@@ -12,7 +12,7 @@ export type AuthUser = {
 type AuthContextType = {
   user: AuthUser | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null; needsEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 };
@@ -50,13 +50,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, name: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { name } },
     });
     if (error) return { error: error.message };
-    return { error: null };
+    // For an already-registered, confirmed address Supabase answers "success"
+    // with a user that has no identities (to avoid leaking which emails exist).
+    if (data.user && (data.user.identities?.length ?? 1) === 0) {
+      return { error: 'User already registered' };
+    }
+    // Email confirmation is enabled in the Supabase project: no session yet.
+    return { error: null, needsEmailConfirmation: !data.session };
   };
 
   const signIn = async (email: string, password: string) => {

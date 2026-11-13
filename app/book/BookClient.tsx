@@ -306,6 +306,7 @@ export default function BookPage() {
   const [authName, setAuthName] = useState('');
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
 
   const [clientInfoTouched, setClientInfoTouched] = useState<ClientInfoTouched>({
     name: false,
@@ -578,6 +579,7 @@ export default function BookPage() {
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+    setAuthNotice(null);
     setAuthSubmitting(true);
 
     if (authMode === 'signup') {
@@ -592,7 +594,7 @@ export default function BookPage() {
         return;
       }
 
-      const { error: signUpError } = await signUp(authEmail, authPassword, authName);
+      const { error: signUpError, needsEmailConfirmation } = await signUp(authEmail, authPassword, authName);
       if (signUpError) {
         const msg = signUpError.toLowerCase();
         if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
@@ -601,6 +603,13 @@ export default function BookPage() {
         } else {
           setAuthError(signUpError);
         }
+        setAuthSubmitting(false);
+        return;
+      }
+      if (needsEmailConfirmation) {
+        // No session yet: the customer must click the link in the confirmation email first.
+        setAuthMode('signin');
+        setAuthNotice(`We sent a confirmation link to ${authEmail}. Open it, then log in here to continue.`);
         setAuthSubmitting(false);
         return;
       }
@@ -775,6 +784,12 @@ export default function BookPage() {
             placeholder={authMode === 'signup' ? 'Min 8 characters' : ''}
           />
         </div>
+
+        {authNotice && (
+          <div className="p-3 border border-green-200 bg-green-50 text-green-800 rounded-lg text-sm font-medium">
+            {authNotice}
+          </div>
+        )}
 
         {authError && (
           <div className="p-3 border border-red-200 bg-red-50 text-red-700 rounded-lg text-sm font-medium">

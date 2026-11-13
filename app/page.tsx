@@ -7,12 +7,12 @@ import { PLANS } from '@/lib/plans';
 import { absoluteUrl, faqJsonLd, SITE_URL, SITE_NAME, STUDIO } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Tokyo Photoshoot — Cinematic Portraits in Shibuya, Shinjuku & Harajuku',
+  title: '찌니의 토스페이먼츠 테스트 페이지',
   description:
     'Book a cinematic Tokyo photoshoot with @ Studio ON. English-speaking photographers, editorial portraits at Shibuya Crossing, Shinjuku, Harajuku, and Akihabara. Sessions from ₩99,000.',
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'Tokyo Photoshoot — Cinematic Portraits in Shibuya, Shinjuku & Harajuku',
+    title: '찌니의 토스페이먼츠 테스트 페이지',
     description:
       'Editorial portrait sessions across Tokyo for travelers, couples, and creators. From ₩99,000.',
     url: SITE_URL,

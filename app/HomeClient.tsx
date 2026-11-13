@@ -194,7 +194,7 @@ function MobileLanding() {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[70svh] bg-[radial-gradient(circle_at_top,#d8d4ce_0%,rgba(252,252,252,0.15)_65%,transparent_95%)]" />
         <p className="relative z-10 text-center text-[11px] font-semibold uppercase tracking-[0.24em] text-black/45">@ Studio ON · Tokyo</p>
         <h1 className="relative z-10 mx-auto mt-4 max-w-[16ch] text-center text-[clamp(2.25rem,10vw,3.8rem)] font-medium leading-[0.95] tracking-tight text-black">
-          Cinematic Tokyo Moments
+          찌니의 토스페이먼츠 테스트 페이지
         </h1>
         <p className="relative z-10 mx-auto mt-5 max-w-[32ch] text-center text-sm leading-relaxed text-black/65">
           Editorial portrait sessions at Shibuya, Shinjuku — for travelers who want frames that feel timeless.
